@@ -1,16 +1,17 @@
-#include<windows.h> //for windows (in case of linux comment out this line)
+//#include<windows.h> //for windows (in case of linux comment out this line)
 #include<string.h>
 #include<stdarg.h>
 #include<stdio.h>
-#include<glut.h>
+#include<GL/freeglut.h>
 #include<math.h>
 
-static double x=0.0
+static double x=0.0;
 static double move=-60;
 static float rx[100]={0}, ry[100]={0};
 //control waves
 static double w1=0,w2=0,w3=0;
 static bool transmit=false;
+
 void *font;
 void *currentfont;
 
@@ -43,8 +44,8 @@ void stroke_output(GLfloat x, GLfloat y, char *format,...)
   glScaled(0.003, 0.005, 0.005);
   for (p = buffer; *p; p++){
     glutStrokeCharacter(GLUT_STROKE_ROMAN, *p);
-    glPopMatrix();
   }
+  glPopMatrix();
 }
 
 void satellite(){
@@ -64,12 +65,14 @@ void satellite(){
   glScaled(3.7,0.0,1);
   glutSolidCube(0.4);
   glPopMatrix();
+  
   glPushMatrix();
   glColor3f(0.2,0.1,0.1);
   glTranslatef(3.0,0,-0.4);
   glScaled(0.5,0.5,0.5);
   glutSolidSphere(0.3,50,50);
   glPopMatrix();
+
   glPushMatrix();
   glColor3f(0.2,0.2,0.1);
   glTranslatef(3.0,0,0.4);
@@ -123,10 +126,10 @@ void building(float x1, float y1, float z1){
     {
     for(float i=0;i<1;i+=0.8)
       {
-      glPushMatrix();
-      glTranslatef(i,j,1);
-      glutSolidCube(0.4);
-      glPopMatrix();
+      	glPushMatrix();
+      	glTranslatef(i,j,1);
+      	glutSolidCube(0.4);
+      	glPopMatrix();
       }
     }
   glPopMatrix();
@@ -138,12 +141,14 @@ void waves(){
   glScaled(0.05,0.5,0.1);
   glutSolidCube(0.5);
   glPopMatrix();
+
   glPushMatrix();
   glRotatef(-8,0,0,1);
   glTranslatef(0.01,1,0);
   glScaled(0.05,0.5,0.1);
   glutSolidCube(0.5);
   glPopMatrix();
+
   glPushMatrix();
   glRotatef(8,0,0,1);
   glTranslatef(-0.01,1,0);
@@ -314,10 +319,123 @@ void s()
 }
 
 void S(){
-  x += .07;glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
+  x += .07;
+  if(transmit)
+  {
+    if(w1<=4.2){
+      w1+=0.01;
+    }
+    if(w1>=2.5 && w2<=6.9){
+      w2+=0.01;
+    }
+    if(w1>=2.5 && w3<=5){
+      w3+=0.01;
+    }
+  }
+  sat1();
+}
+
+void doInit(){
+  //Background and foreground colour
+  glClearColor(0.0,0.0,0.0,0);
+  glViewport(0,0,640,480);
+  //select the projection matrix and reset it then setup our view perspective
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(30.0f,(GLfloat)640/(GLfloat)480,0.1f,200.0f);
+  //select the modelview matrix which we alter with rotatef()
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glClearDepth(2.0f);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_COLOR_MATERIAL);
+  glDepthFunc(GL_LEQUAL);
+}
+
+void display(){
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glLoadIdentity();
+  glTranslatef(0.0f,0.0f,-13.0f);
+  stroke_output(-2.0,1.7,"s/S-->Start");
+  stroke_output(-2.0,0.9,"t-->Transmit");
+  stroke_output(-2.0,0.0,"q/Q-->Quit");
+
+  GLfloat mat_ambient[]={0.0f,1.0f,2.0f,1.0f};
+  GLfloat mat_diffuse[]={0.0f,1.5f,.5f,.5f,1.0f};
+  GLfloat mat_specular[]={5.0f,1.0f,1.0f,1.0f};
+  GLfloat mat_shininess[]={50.0f};
+
+  glMaterialfv(GL_FRONT,GL_AMBIENT, mat_ambient);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+  glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+  glMaterialfv(GL_FRONT,GL_SHININESS, mat_shininess);
+
+  GLfloat lightIntensity[]={1.7f,1.7f,1.7f,1.0f};
+  GLfloat light_position3[]={0.0f,8.0f,10.0f,0.0f};
+  glLightfv(GL_LIGHT0,GL_POSITION,light_position3);
+  glLightfv(GL_LIGHT0,GL_DIFFUSE,lightIntensity);
+
+  GLfloat lightIntensity1[]={1.7f,1.7f,1.7f,1.0f};
+  GLfloat light_position31[]={-2.0f,8.0f,10.0f,0.0f};
+  
+  glLightfv(GL_LIGHT1,GL_POSITION,light_position31);
+  glLightfv(GL_LIGHT1,GL_DIFFUSE,lightIntensity1);
+  glEnable(GL_COLOR_MATERIAL);
+  glFlush();
+  glutSwapBuffers();
+
+}
+
+void menu(int id){
+  switch(id){
+    case 1:glutIdleFunc(S);
+    break;
+    case 2:glutIdleFunc(s);
+    break;
+    case 5: exit(0);
+    break;
+  }
+  glFlush();
+  glutSwapBuffers();
+  glutPostRedisplay();
+}
+
+void mykey(unsigned char key,int x,int y){
+  if(key=='s')
+  {
+    glutIdleFunc(s);
+  }
+  if(key=='S')
+  {
+    glutIdleFunc(S);
+  }
+  if(key=='e')
+  {
+    glutIdleFunc(e);
+  }
+  if(key=='t')
+  {
+    transmit=!transmit;
+    if(!transmit){
+      w1=0;
+      w2=0;
+      w3=0;
+    }
+    glutIdleFunc(S);
+  }
+  if(key=='q'||key=='Q')
+  {
+    exit(0);
+  }
+}
+
+int main(int argc,char *argv[])
+{
+  glutInit(&argc,argv);
+  glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
   glutInitWindowSize(1000,480);
   glutInitWindowPosition(0,0);
-  glutCreateWindow("Working of a Satellite");
+  glutCreateWindow("Satellite");
   glutDisplayFunc(display);
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
